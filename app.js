@@ -14,6 +14,8 @@ const ExpressError = require("./utils/ExpressError");
 const catchAsync = require("./utils/catchAsync");
 //required for authentication
 const session = require("express-session");
+const MongoStore = require('connect-mongo');
+
 const flash = require("connect-flash");
 const User = require("./models/user");
 const passport = require("passport");
@@ -23,8 +25,11 @@ const LocalStrategy = require("passport-local");
 const userRoutes = require("./routes/users");
 const collabRoutes = require("./routes/collab");
 
+const atlasURL = process.env.DB_URL
+// "mongodb://localhost:27017/uni-collab"
+
 //Connecting to our DataBase
-mongoose.connect("mongodb://localhost:27017/uni-collab");
+mongoose.connect(atlasURL);
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection Error:"));
 db.on("open", () => {
@@ -45,7 +50,16 @@ app.use(
   })
 );
 
+const store = MongoStore.create({
+  mongoUrl: atlasURL,
+  touchAfter: 24 * 60 * 60,
+  crypto: {
+      secret: 'thisshouldbeabettersecret!'
+  }
+});
+
 const sessionConfig = {
+  store,
   secret: "thisshouldbeabettersecret",
   resave: false,
   saveUninitialized: true,
@@ -55,6 +69,7 @@ const sessionConfig = {
     maxAge: 1000 * 60 * 60 * 24 * 7,
   },
 };
+
 //cokkies, session and auth related config
 app.use(session(sessionConfig));
 app.use(flash());
